@@ -1,86 +1,97 @@
 package com.rgs.galaxyinvaders.assets;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 
-/** Minimal asset loader: player1.png (player), enemy1.png (enemies), boss1.png (boss) from assets/sprites/. */
 public class Assets implements Disposable {
 
-    /** Kept so GameScreen's explosion code compiles even if we don't use it. */
     public static class ExplosionSeq {
-        public final String key;
         public final Array<TextureRegion> frames = new Array<>();
         public float frameDuration = 0.05f;
-        public ExplosionSeq(String key) { this.key = key; }
     }
 
-    // Sprites the game uses
-    public TextureRegion playerShip;
-    public TextureRegion bossShip;
-    public final Array<TextureRegion> enemyShips = new Array<>();
-    public TextureRegion playerProjectile;
-    public TextureRegion enemyProjectile;
-    public final Array<ExplosionSeq> explosions = new Array<>(); // optional; can stay empty
+    public final AssetManager manager = new AssetManager();
 
-    // Utility/fallback
+    // Sprites
+    public TextureRegion playerShip;
+    public final Array<TextureRegion> enemyShips = new Array<>();
+    public TextureRegion bossShip;
+    public final Array<ExplosionSeq> explosions = new Array<>();
     public TextureRegion white1x1;
 
-    // Track textures to dispose
-    private final Array<Texture> allTextures = new Array<>();
+    // Audio
+    public Music menuMusic;
+    public Music gameMusic;
+    public Sound pickup;
+    public Sound hit;
 
-    /** Call once from Game.create() */
     public void loadAll() {
-        // --- 1x1 white fallback ---
-        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pm.setColor(1, 1, 1, 1);
-        pm.fill();
-        Texture white = new Texture(pm);
-        pm.dispose();
-        white.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        white1x1 = new TextureRegion(white);
-        allTextures.add(white);
+        // core textures
+        manager.load("player1.png", Texture.class);
+        manager.load("enemy1.png", Texture.class);
+        manager.load("boss1.png",  Texture.class);
 
-        // --- Hardwired file paths (under assets/) ---
-        // Player
-        playerShip = loadRegionOrFallback("sprites/player1.png", "player1.png");
-
-        // Enemies (all use enemy1.png)
-        TextureRegion enemy = loadRegionOrFallback("sprites/enemy1.png", "enemy1.png");
-        enemyShips.add(enemy);
-
-        // Boss (prefer boss1.png; if missing, fall back to enemy1.png; else to white1x1)
-        bossShip = loadRegionOrFallback("sprites/boss1.png", "boss1.png");
-        if (bossShip == white1x1 && enemy != white1x1) bossShip = enemy;
-
-        // Projectiles: simple circles (so use white fallback; drawing handled in GameScreen)
-        playerProjectile = white1x1;
-        enemyProjectile  = white1x1;
-
-        // Log what we ended up using
-        Gdx.app.log("Assets", "Player:  sprites/player1.png " + (playerShip == white1x1 ? "(MISSING → white1x1)" : "OK"));
-        Gdx.app.log("Assets", "Enemy:   sprites/enemy1.png  " + (enemy == white1x1 ? "(MISSING → white1x1)" : "OK"));
-        Gdx.app.log("Assets", "Boss:    sprites/boss1.png   " + (bossShip == white1x1 ? "(MISSING → fallback)" : "OK"));
+        // audio
+        manager.load("music1.mp3", Music.class); // menu
+        manager.load("music2.mp3", Music.class); // game
+        manager.load("pickup.mp3", Sound.class);
+        manager.load("hit.mp3",    Sound.class);
     }
 
-    private TextureRegion loadRegionOrFallback(String internalPath, String label) {
-        FileHandle fh = Gdx.files.internal(internalPath);
-        if (!fh.exists()) {
-            Gdx.app.log("Assets", "WARN: " + label + " not found at " + internalPath + " — using white1x1.");
-            return white1x1;
+    public void finishLoading() {
+        manager.finishLoading();
+
+        // textures
+        if (manager.isLoaded("player1.png")) playerShip = new TextureRegion(manager.get("player1.png", Texture.class));
+        if (manager.isLoaded("enemy1.png"))  enemyShips.add(new TextureRegion(manager.get("enemy1.png", Texture.class)));
+        if (manager.isLoaded("boss1.png"))   bossShip = new TextureRegion(manager.get("boss1.png", Texture.class));
+
+        // simple 1x1 fallback
+        Pixmap pm = new Pixmap(1,1, Pixmap.Format.RGBA8888);
+        pm.setColor(Color.WHITE);
+        pm.fill();
+        white1x1 = new TextureRegion(new Texture(pm));
+        pm.dispose();
+
+        // audio
+        if (manager.isLoaded("music1.mp3")) {
+            menuMusic = manager.get("music1.mp3", Music.class);
+            menuMusic.setLooping(true);
         }
-        Texture tex = new Texture(fh);
-        tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        allTextures.add(tex);
-        return new TextureRegion(tex);
+        if (manager.isLoaded("music2.mp3")) {
+            gameMusic = manager.get("music2.mp3", Music.class);
+            gameMusic.setLooping(true);
+        }
+        if (manager.isLoaded("pickup.mp3")) pickup = manager.get("pickup.mp3", Sound.class);
+        if (manager.isLoaded("hit.mp3"))    hit    = manager.get("hit.mp3", Sound.class);
+    }
+
+    public void playMenuMusic() {
+        if (gameMusic != null) gameMusic.stop();
+        if (menuMusic != null && !menuMusic.isPlaying()) menuMusic.play();
+    }
+
+    public void playGameMusic() {
+        if (menuMusic != null) menuMusic.stop();
+        if (gameMusic != null && !gameMusic.isPlaying()) gameMusic.play();
+    }
+
+    public void stopAllMusic() {
+        if (menuMusic != null) menuMusic.stop();
+        if (gameMusic != null) gameMusic.stop();
     }
 
     @Override
     public void dispose() {
-        for (Texture t : allTextures) t.dispose();
+        stopAllMusic();
+        manager.dispose();
     }
 }

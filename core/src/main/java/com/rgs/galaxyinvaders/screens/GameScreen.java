@@ -31,8 +31,8 @@ public class GameScreen implements Screen {
     // Ease knobs
     private static final int   BOSS_BULLET_LIMIT   = 60;    // cap total enemy bullets when boss present
     private static final float BULLET_HITBOX_SCALE = 0.60f; // smaller hitboxes (easier to dodge)
-    private static final float BOSS_MISS_DEG       = 10f;   // add aim jitter to make shots dodgeable
-    private static final float ATTACK_SLOW_FACTOR  = 1.50f; // all bosses attack slower (bigger cooldowns)
+    private static final float BOSS_MISS_DEG       = 10f;   // aim jitter to make shots dodgeable
+    private static final float ATTACK_SLOW_FACTOR  = 1.50f; // all bosses attack slower
 
     private final GalaxyInvadersGame game;
     private final OrthographicCamera cam;
@@ -96,6 +96,11 @@ public class GameScreen implements Screen {
         diffSpawn      = MathUtils.clamp(0.75f * tier, 0.60f, 2.5f);
         diffBossHP     = MathUtils.clamp(0.70f * tier, 0.70f, 3.0f);
         diffBossFire   = MathUtils.clamp(0.80f * tier, 0.70f, 3.0f);
+    }
+
+    @Override public void show() {
+        // Start game music (stops menu music)
+        game.assets.playGameMusic();
     }
 
     @Override public void render(float delta) {
@@ -262,6 +267,7 @@ public class GameScreen implements Screen {
             if (overlap(e.rect(), player.rect())) {
                 enemies.removeIndex(i);
                 spawnExplosion(e.x + e.w/2f, e.y + e.h/2f);
+                playHitSfx(0.8f);
                 playerHit();
             }
         }
@@ -280,6 +286,7 @@ public class GameScreen implements Screen {
                     e.hp--;
                     e.hitTimer = 0.12f;
                     freePlayerBullet(i);
+                    playHitSfx(0.45f);
                     if (e.hp <= 0) {
                         maybeDrop(e.x + e.w/2f, e.y + e.h/2f);
                         score += e.scoreValue;
@@ -295,6 +302,7 @@ public class GameScreen implements Screen {
                 boss.hp--;
                 boss.hitTimer = 0.12f;
                 score += BOSS_HIT_SCORE;
+                playHitSfx(0.55f);
                 if (MathUtils.random() < BOSS_HIT_POWERUP_CHANCE) {
                     maybeDrop(boss.x + boss.w/2f, boss.y + boss.h/2f);
                 }
@@ -313,6 +321,7 @@ public class GameScreen implements Screen {
             if (overlap(b.rect(), player.rect())) {
                 freeEnemyBullet(i);
                 spawnExplosion(player.x + player.w/2f, player.y + player.h/2f);
+                playHitSfx(0.8f);
                 playerHit();
             }
         }
@@ -325,8 +334,16 @@ public class GameScreen implements Screen {
             if (overlap(p.rect(), player.rect())) {
                 p.apply(player);
                 powerups.removeIndex(i);
+                playPickupSfx(0.9f);
             }
         }
+    }
+
+    private void playPickupSfx(float vol) {
+        if (game.assets.pickup != null) game.assets.pickup.play(vol);
+    }
+    private void playHitSfx(float vol) {
+        if (game.assets.hit != null) game.assets.hit.play(vol);
     }
 
     private void playerHit() {
@@ -398,7 +415,6 @@ public class GameScreen implements Screen {
     }
     private void flash(float t) { flashTime = Math.max(flashTime, t); }
 
-    @Override public void show() {}
     @Override public void resize(int width, int height) { viewport.update(width, height, true); }
     @Override public void pause() {}
     @Override public void resume() {}
@@ -600,17 +616,14 @@ public class GameScreen implements Screen {
             fireTimer -= dt;
             if (fireTimer <= 0f) {
                 if (hpPct > 0.66f) {
-                    // Early phase: prefer aimed; fallback to fan if needed
                     if (allowAimed) aimedVolley(earlyVolley, 140f);
                     else if (allowFan) fan(-45, 45, earlyVolley, 160f);
                     fireTimer = 1.4f * intervalScale;
                 } else if (hpPct > 0.33f) {
-                    // Mid phase: prefer fan; fallback to aimed
                     if (allowFan)   fan(-45, 45, midFan, 180f);
                     else if (allowAimed) aimedVolley(Math.max(2, midFan/2), 150f);
                     fireTimer = 1.2f * intervalScale;
                 } else {
-                    // Late phase: prefer spiral; fallback to fan/aimed
                     if (allowSpiral)      spiral(lateSpiral, 160f);
                     else if (allowFan)    fan(-50, 50, Math.max(5, lateSpiral), 170f);
                     else if (allowAimed)  aimedVolley(Math.max(3, earlyVolley + 1), 160f);
@@ -651,7 +664,7 @@ public class GameScreen implements Screen {
             float cx = x + w/2f, cy = y;
             for (int i = 0; i < n; i++) {
                 if (enemyBullets.size >= BOSS_BULLET_LIMIT) break;
-                float a = (t * 180f + i * (360f/n)) * MathUtils.degreesToRadians; // slower spiral
+                float a = (t * 180f + i * (360f/n)) * MathUtils.degreesToRadians;
                 Bullet b = bulletPool.obtain().set(cx - 4f, cy - 4f, 8f, 8f, -speed);
                 b.vx = MathUtils.cos(a) * 150f;
                 enemyBullets.add(b);

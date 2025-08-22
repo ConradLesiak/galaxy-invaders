@@ -1,28 +1,39 @@
 package com.rgs.galaxyinvaders;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.rgs.galaxyinvaders.assets.Assets;
 import com.rgs.galaxyinvaders.screens.MenuScreen;
 
 public class GalaxyInvadersGame extends Game {
-    public Preferences prefs;
+
     public Assets assets;
+    private Preferences prefs;
+    private int highScore = 0;
 
     @Override
     public void create() {
-        prefs = com.badlogic.gdx.Gdx.app.getPreferences("galaxy_invaders_prefs");
-        if (!prefs.contains("highscore")) prefs.putInteger("highscore", 0).flush();
-
         assets = new Assets();
         assets.loadAll();
+        assets.finishLoading();
+
+        prefs = Gdx.app.getPreferences("GalaxyInvadersPrefs");
+        highScore = prefs.getInteger("highscore", 0);
 
         setScreen(new MenuScreen(this));
     }
 
-    public int getHighScore() { return prefs.getInteger("highscore", 0); }
+    public int getHighScore() {
+        return highScore;
+    }
+
     public void maybeSetHighScore(int score) {
-        if (score > getHighScore()) { prefs.putInteger("highscore", score).flush(); }
+        if (score > highScore) {
+            highScore = score;
+            prefs.putInteger("highscore", highScore);
+            prefs.flush();
+        }
     }
 
     @Override
