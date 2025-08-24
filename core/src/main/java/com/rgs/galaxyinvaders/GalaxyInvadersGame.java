@@ -7,7 +7,6 @@ import com.rgs.galaxyinvaders.assets.Assets;
 import com.rgs.galaxyinvaders.screens.MenuScreen;
 
 public class GalaxyInvadersGame extends Game {
-
     public Assets assets;
     private Preferences prefs;
     private int highScore = 0;
@@ -24,20 +23,16 @@ public class GalaxyInvadersGame extends Game {
         setScreen(new MenuScreen(this));
     }
 
-    public int getHighScore() {
-        return highScore;
-    }
-
-    public void maybeSetHighScore(int score) {
-        if (score > highScore) {
-            highScore = score;
+    public int getHighScore() { return highScore; }
+    public void maybeSetHighScore(int s) {
+        if (s > highScore) {
+            highScore = s;
             prefs.putInteger("highscore", highScore);
             prefs.flush();
         }
     }
 
-    @Override
-    public void dispose() {
+    @Override public void dispose() {
         super.dispose();
         if (assets != null) assets.dispose();
     }

@@ -1,6 +1,5 @@
 package com.rgs.galaxyinvaders.assets;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
@@ -20,18 +19,14 @@ public class Assets implements Disposable {
 
     public final AssetManager manager = new AssetManager();
 
-    // Sprites
-    public TextureRegion playerShip;
+    // Textures
+    public TextureRegion playerShip, bossShip, white1x1;
     public final Array<TextureRegion> enemyShips = new Array<>();
-    public TextureRegion bossShip;
     public final Array<ExplosionSeq> explosions = new Array<>();
-    public TextureRegion white1x1;
 
     // Audio
-    public Music menuMusic;
-    public Music gameMusic;
-    public Sound pickup;
-    public Sound hit;
+    public Music menuMusic, gameMusic;
+    public Sound pickup, hit;
 
     public void loadAll() {
         // core textures
@@ -49,19 +44,16 @@ public class Assets implements Disposable {
     public void finishLoading() {
         manager.finishLoading();
 
-        // textures
-        if (manager.isLoaded("player1.png")) playerShip = new TextureRegion(manager.get("player1.png", Texture.class));
-        if (manager.isLoaded("enemy1.png"))  enemyShips.add(new TextureRegion(manager.get("enemy1.png", Texture.class)));
-        if (manager.isLoaded("boss1.png"))   bossShip = new TextureRegion(manager.get("boss1.png", Texture.class));
+        if (manager.isLoaded("player1.png")) playerShip = tr("player1.png");
+        if (manager.isLoaded("enemy1.png"))  enemyShips.add(tr("enemy1.png"));
+        if (manager.isLoaded("boss1.png"))   bossShip = tr("boss1.png");
 
-        // simple 1x1 fallback
+        // 1x1 fallback
         Pixmap pm = new Pixmap(1,1, Pixmap.Format.RGBA8888);
-        pm.setColor(Color.WHITE);
-        pm.fill();
+        pm.setColor(Color.WHITE); pm.fill();
         white1x1 = new TextureRegion(new Texture(pm));
         pm.dispose();
 
-        // audio
         if (manager.isLoaded("music1.mp3")) {
             menuMusic = manager.get("music1.mp3", Music.class);
             menuMusic.setLooping(true);
@@ -73,6 +65,8 @@ public class Assets implements Disposable {
         if (manager.isLoaded("pickup.mp3")) pickup = manager.get("pickup.mp3", Sound.class);
         if (manager.isLoaded("hit.mp3"))    hit    = manager.get("hit.mp3", Sound.class);
     }
+
+    private TextureRegion tr(String path) { return new TextureRegion(manager.get(path, Texture.class)); }
 
     public void playMenuMusic() {
         if (gameMusic != null) gameMusic.stop();
@@ -89,9 +83,5 @@ public class Assets implements Disposable {
         if (gameMusic != null) gameMusic.stop();
     }
 
-    @Override
-    public void dispose() {
-        stopAllMusic();
-        manager.dispose();
-    }
+    @Override public void dispose() { stopAllMusic(); manager.dispose(); }
 }

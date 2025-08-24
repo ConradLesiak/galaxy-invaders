@@ -12,69 +12,56 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.rgs.galaxyinvaders.GalaxyInvadersGame;
+import com.rgs.galaxyinvaders.config.Constants;
 
 public class MenuScreen implements Screen {
-
-    private static final float W = 800, H = 480;
-
     private final GalaxyInvadersGame game;
-    private final OrthographicCamera cam;
-    private final Viewport viewport;
-    private final SpriteBatch batch;
-    private final BitmapFont font;
+    private final OrthographicCamera cam = new OrthographicCamera();
+    private final Viewport viewport = new FitViewport(Constants.W, Constants.H, cam);
+    private final SpriteBatch batch = new SpriteBatch();
+    private final BitmapFont font = new BitmapFont();
     private final GlyphLayout layout = new GlyphLayout();
 
     public MenuScreen(GalaxyInvadersGame game) {
         this.game = game;
-        cam = new OrthographicCamera();
-        viewport = new FitViewport(W, H, cam);
         viewport.apply(true);
-        cam.position.set(W/2f, H/2f, 0);
-
-        batch = new SpriteBatch();
-        font = new BitmapFont();
+        cam.position.set(Constants.W/2f, Constants.H/2f, 0);
     }
 
-    @Override public void show() {
-        // Start menu music (stops game music if it was playing)
-        game.assets.playMenuMusic();
-    }
+    @Override public void show() { game.assets.playMenuMusic(); }
 
     @Override public void render(float delta) {
-        Gdx.gl.glClearColor(0.02f,0.02f,0.05f,1f);
+        Gdx.gl.glClearColor(0.02f, 0.02f, 0.05f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // input
+        // Input
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            game.setScreen(new GameScreen(game));
-            return;
+            game.setScreen(new GameScreen(game)); return;
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            Gdx.app.exit();
-        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) Gdx.app.exit();
 
         viewport.apply();
         cam.update();
         batch.setProjectionMatrix(cam.combined);
-
         batch.begin();
+
         font.setColor(Color.WHITE);
+        font.getData().setScale(1.25f);
         layout.setText(font, "Galaxy Invaders");
-        font.getData().setScale(1.3f);
-        font.draw(batch, layout, (W - layout.width)/2f, H - 140);
+        font.draw(batch, layout, (Constants.W - layout.width)/2f, Constants.H - 140);
 
         font.getData().setScale(1.0f);
-        String line1 = "Press [ENTER] or [SPACE] to Start";
-        String line2 = "Move: A/D or \u2190/\u2192   •   Fire: SPACE   •   Pause: P/ENTER   •   Menu: ESC";
-        layout.setText(font, line1);
         font.setColor(Color.LIME);
-        font.draw(batch, layout, (W - layout.width)/2f, H/2f + 10);
+        layout.setText(font, "Press [ENTER] or [SPACE] to Start");
+        font.draw(batch, layout, (Constants.W - layout.width)/2f, Constants.H/2f + 10);
+
         font.setColor(Color.GRAY);
-        layout.setText(font, line2);
-        font.draw(batch, layout, (W - layout.width)/2f, H/2f - 24);
+        layout.setText(font, "Move: A/D or ←/→ • Fire: SPACE • Pause: P/ENTER • Menu: ESC");
+        font.draw(batch, layout, (Constants.W - layout.width)/2f, Constants.H/2f - 24);
 
         font.setColor(Color.WHITE);
         font.draw(batch, "High Score: " + game.getHighScore(), 10, 24);
+
         batch.end();
     }
 
