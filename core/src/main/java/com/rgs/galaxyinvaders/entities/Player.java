@@ -6,10 +6,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.rgs.galaxyinvaders.assets.Assets;
-import com.rgs.galaxyinvaders.world.GameWorld;
 
 public class Player extends GameObject {
-    private final GameWorld world;
+    private final com.rgs.galaxyinvaders.world.GameWorld world;
 
     private float speed = 320f;
     private float cooldown = 0.22f, cdTimer = 0f;
@@ -17,7 +16,11 @@ public class Player extends GameObject {
 
     private float rapidTimer = 0f, spreadTimer = 0f, shieldTimer = 0f, blinkTimer = 0f;
 
-    public Player(GameWorld world, Assets assets) {
+    // New: external input from touch controls
+    private float externalMoveAxis = 0f; // -1..1
+    private boolean externalFire = false;
+
+    public Player(com.rgs.galaxyinvaders.world.GameWorld world, Assets assets) {
         this.world = world;
         TextureRegion tr = assets.playerShip != null ? assets.playerShip : assets.white1x1;
         this.sprite = tr;
@@ -30,15 +33,19 @@ public class Player extends GameObject {
     }
 
     @Override public void update(float dt) {
-        float dir = 0f;
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) dir -= 1f;
+        // Movement: combine touch axis with keyboard (whichever has stronger intent)
+        float dir = externalMoveAxis;
+        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  dir -= 1f;
         if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) dir += 1f;
+        dir = MathUtils.clamp(dir, -1f, 1f);
+
         x += dir * speed * dt;
         x = MathUtils.clamp(x, 6, 800f - w - 6);
 
         cdTimer -= dt;
         boolean autoFire = rapidTimer > 0f;
-        if ((Gdx.input.isKeyPressed(Input.Keys.SPACE) && cdTimer <= 0) || (autoFire && cdTimer <= 0)) {
+        boolean wantFire = externalFire || Gdx.input.isKeyPressed(Input.Keys.SPACE) || autoFire;
+        if (wantFire && cdTimer <= 0f) {
             shoot();
             cdTimer = (rapidTimer > 0) ? 0.07f : cooldown;
         }
@@ -47,6 +54,9 @@ public class Player extends GameObject {
         if (spreadTimer > 0) spreadTimer -= dt;
         if (shieldTimer > 0) shieldTimer -= dt;
         if (blinkTimer  > 0) blinkTimer  -= dt;
+
+        // reset one-shot external fire? keep held while finger is down
+        // (externalFire state is set each frame by GameScreen)
     }
 
     private void shoot() {
@@ -76,6 +86,10 @@ public class Player extends GameObject {
     public boolean consumeShieldIfAny() { if (shieldTimer > 0) { shieldTimer = 0; return true; } return false; }
     public void loseLife() { lives--; }
     public void blink(float t) { blinkTimer = t; }
+
+    // External input setters
+    public void setExternalMoveAxis(float a) { externalMoveAxis = MathUtils.clamp(a, -1f, 1f); }
+    public void setExternalFire(boolean f)   { externalFire = f; }
 
     public int getLives() { return lives; }
     public float getShieldTimer() { return shieldTimer; }

@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
@@ -52,6 +53,7 @@ public class GameWorld {
 
     // ---------- Update / Render orchestration ----------
     public void update(float dt) {
+        if (gameOver) return; // <<< freeze everything on subsequent frames
         if (slowmo > 0f) slowmo -= dt;
         starfield.update(dt);
         player.update(dt);
@@ -175,14 +177,14 @@ public class GameWorld {
         }
     }
 
-    public void renderFlash(com.badlogic.gdx.graphics.glutils.ShapeRenderer sr) {
-        if (flashTime > 0f) {
-            flashTime -= com.badlogic.gdx.Gdx.graphics.getDeltaTime();
-            sr.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-            sr.setColor(1, 1, 1, MathUtils.clamp(flashTime, 0, 0.5f));
-            sr.rect(0, 0, Constants.W, Constants.H);
-            sr.end();
-        }
+    // NEW: time-aware version (freezes when dt = 0)
+    public void renderFlash(ShapeRenderer sr, float dt) {
+        if (flashTime <= 0f) return;
+        flashTime -= dt;
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setColor(1f, 1f, 1f, MathUtils.clamp(flashTime, 0f, 0.5f));
+        sr.rect(0, 0, Constants.W, Constants.H);
+        sr.end();
     }
 
     public void applyCameraShake(OrthographicCamera cam, float delta) {
@@ -266,8 +268,12 @@ public class GameWorld {
     public void flash(float t) { flashTime = Math.max(flashTime, t); }
     public float getTimeScale() { return slowmo > 0 ? 0.25f : 1f; }
 
-    public void playPickupSfx(float v) { if (game.assets.pickup != null) game.assets.pickup.play(v); }
-    public void playHitSfx(float v) { if (game.assets.hit != null) game.assets.hit.play(v); }
+    private void playPickupSfx(float vol) {
+        if (game.assets.pickup != null) game.assets.pickup.play(game.assets.sfx(vol));
+    }
+    private void playHitSfx(float vol) {
+        if (game.assets.hit != null) game.assets.hit.play(game.assets.sfx(vol));
+    }
 
     // ---------- Getters ----------
     public Player getPlayer() { return player; }
